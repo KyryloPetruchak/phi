@@ -1,0 +1,105 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<title></title>
+</head>
+<body>
+
+	<svg version="1.1"
+		 width="1000" height="600"
+		 xmlns="http://www.w3.org/2000/svg"
+		 id="plane">
+		<rect width="100%" height="100%" fill="#c9daf5" />
+
+		<line x1="500" y1="0" x2="500" y2="600" stroke="black" stroke-width="2" />
+		<line x1="0" y1="300" x2="1000" y2="300" stroke="black" stroke-width="2" />
+
+	</svg>
+
+	<script>
+		const svgns = "http://www.w3.org/2000/svg";
+		const svg = document.getElementById("plane");
+
+		const polyline = (points, stroke, strokeWidth) => {
+			const el = document.createElementNS(svgns, "polyline");
+			el.setAttribute("points", points.join(" "));
+			el.setAttribute("stroke", stroke);
+			el.setAttribute("stroke-width", strokeWidth);
+			el.setAttribute("fill", "none");
+			return el;
+		}
+
+		const ro = (phi, sign) => {
+			const cos = Math.cos(phi);
+			const sin = Math.sin(phi);
+
+			return 2 * cos + sin + sign * Math.sqrt(Math.pow(2 * cos + sin, 2) - 4);
+		}
+
+		const start = 0;
+		const end = 0.927295; // arctg 4/3
+		const step = 0.001;
+
+		const points = []
+		for (let phi = start; phi < end; phi += step) {
+			const r = ro(phi, 1);
+			const x = r * Math.cos(phi) * 70;
+			const y = r * Math.sin(phi) * 70;
+			
+			points.push(500 + x); // + svg center
+			points.push(300 - y); // + svg center
+		}
+
+		const c = polyline(points, "red", 2);
+		svg.appendChild(c);
+
+		const points2 = []
+		for (let phi = start; phi < end; phi += step) {
+			const r = ro(phi, -1);
+			const x = r * Math.cos(phi) * 70;
+			const y = r * Math.sin(phi) * 70;
+
+			points2.push(500 + x); // + svg center
+			points2.push(300 - y); // + svg center
+		}
+
+		const c2 = polyline(points2, "blue", 2);
+		svg.appendChild(c2);
+
+		c.setAttribute("points", points.slice(0, 300).join(" "));
+
+		let idxP = 0;
+		let intervalP = 0;
+
+		const draw = async () => {
+			if (idxP >= points.length) {
+				clearInterval(intervalP);
+				idxP = points.length;
+			}
+
+			const subPoints = points.slice(0, idxP);
+			c.setAttribute("points", subPoints.join(" "));
+			idxP += 20;
+		}
+
+		let idxP2 = 0;
+		let intervalP2 = 0;
+
+		const draw2 = async () => {
+			if (idxP2 >= points2.length) {
+				clearInterval(intervalP2);
+				idxP2 = points2.length;
+			}
+
+			const subPoints = points2.slice(0, idxP2);
+			c2.setAttribute("points", subPoints.join(" "));
+			idxP2 += 20;
+		}
+
+		intervalP = setInterval(draw, 100);
+		intervalP2 = setInterval(draw2, 100);
+
+	</script>
+
+</body>
+</html>
+
