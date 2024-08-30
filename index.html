@@ -1,105 +1,103 @@
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!doctype html>
+<html lang="en">
 <head>
-	<title></title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="width=device-width, user-scalable=no"/>
+	<title>WEBGL</title>
+	<style>
+		* {margin:0; padding:0;}
+		/*html, body {width:100%; height:100%;}*/
+		canvas {display:block;}
+
+	</style>
 </head>
+
 <body>
+	<canvas id="glcanvas" width="640" height="480"></canvas>
 
-	<svg version="1.1"
-		 width="1000" height="600"
-		 xmlns="http://www.w3.org/2000/svg"
-		 id="plane">
-		<rect width="100%" height="100%" fill="#c9daf5" />
-
-		<line x1="500" y1="0" x2="500" y2="600" stroke="black" stroke-width="2" />
-		<line x1="0" y1="300" x2="1000" y2="300" stroke="black" stroke-width="2" />
-
-	</svg>
+	<script src="libs/glUtils.js"></script>
+	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script> -->
 
 	<script>
-		const svgns = "http://www.w3.org/2000/svg";
-		const svg = document.getElementById("plane");
+		const VSHADER_SOURCE = `
+			attribute vec4 aPosition;			// aPosition used as mediator to set gl_Position
+			void main() {
+				gl_Position = aPosition;		// gl_Position set the vertex coordinates of the point to draw
+				gl_PointSize = 5.0;				// Set the point size
+			}`;
 
-		const polyline = (points, stroke, strokeWidth) => {
-			const el = document.createElementNS(svgns, "polyline");
-			el.setAttribute("points", points.join(" "));
-			el.setAttribute("stroke", stroke);
-			el.setAttribute("stroke-width", strokeWidth);
-			el.setAttribute("fill", "none");
-			return el;
+		const FSHADER_SOURCE = `
+			precision mediump float;
+
+			uniform vec4 uFragColor;
+			void main() {
+				gl_FragColor = uFragColor;	// Set the point color
+			}`;
+
+		const points = [];
+		const init = () => {
+			const canvas = document.getElementById("glcanvas");
+			const gl = glUtils.checkWebGL(canvas);
+			glUtils.resize(gl);
+			const program = glUtils.initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE);
+			const aPosition = gl.getAttribLocation(program, "aPosition");
+			const uFragColor = gl.getUniformLocation(program, "uFragColor");
+
+			canvas.addEventListener("mousedown", onmousedown);
+
+			gl.clearColor(0.0, 0.0, 0.0, 1.0);	// Clear to yellow
+			gl.clear(gl.COLOR_BUFFER_BIT);		// Clear canvas
+
+			return { canvas, gl, program, aPosition, uFragColor };
+		};
+
+		const { canvas, gl, program, aPosition, uFragColor } = init();
+
+		const draw_TRIANGLE_STRIP = () => {
+			const vertices = new Float32Array([
+				-0.5, 0.0, 0.0, 0.5, 0.0, 0.0,
+				0.5, 0.5, 0.75, 0.0, 1.0, 0.5
+			]);
+
+			const buffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+			gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+			gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+			gl.enableVertexAttribArray(aPosition);
+
+
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+			//gl.drawArrays(gl.TRIANGLES, 3, 3);
 		}
 
-		const ro = (phi, sign) => {
-			const cos = Math.cos(phi);
-			const sin = Math.sin(phi);
+		const draw_POINTS = () => {
+			gl.clear(gl.COLOR_BUFFER_BIT);		// Clear canvas
 
-			return 2 * cos + sin + sign * Math.sqrt(Math.pow(2 * cos + sin, 2) - 4);
-		}
-
-		const start = 0;
-		const end = 0.927295; // arctg 4/3
-		const step = 0.001;
-
-		const points = []
-		for (let phi = start; phi < end; phi += step) {
-			const r = ro(phi, 1);
-			const x = r * Math.cos(phi) * 70;
-			const y = r * Math.sin(phi) * 70;
-			
-			points.push(500 + x); // + svg center
-			points.push(300 - y); // + svg center
-		}
-
-		const c = polyline(points, "red", 2);
-		svg.appendChild(c);
-
-		const points2 = []
-		for (let phi = start; phi < end; phi += step) {
-			const r = ro(phi, -1);
-			const x = r * Math.cos(phi) * 70;
-			const y = r * Math.sin(phi) * 70;
-
-			points2.push(500 + x); // + svg center
-			points2.push(300 - y); // + svg center
-		}
-
-		const c2 = polyline(points2, "blue", 2);
-		svg.appendChild(c2);
-
-		c.setAttribute("points", points.slice(0, 300).join(" "));
-
-		let idxP = 0;
-		let intervalP = 0;
-
-		const draw = async () => {
-			if (idxP >= points.length) {
-				clearInterval(intervalP);
-				idxP = points.length;
+			for (const point of points) {
+				gl.vertexAttrib3f(aPosition, point.x, point.y, 0.0); // Set postion of point to aPosition variable
+				gl.uniform4f(uFragColor, point.color.r, point.color.g, point.color.b, point.color.a);
+				gl.drawArrays(gl.POINTS, 0, 1);
 			}
-
-			const subPoints = points.slice(0, idxP);
-			c.setAttribute("points", subPoints.join(" "));
-			idxP += 20;
 		}
 
-		let idxP2 = 0;
-		let intervalP2 = 0;
+		function onmousedown(ev) {
+			const midX = canvas.width / 2;
+			const midY = canvas.height / 2;
+			const rect = ev.target.getBoundingClientRect();
+			const x = ((ev.clientX - rect.left) - midX) / midX;
+			const y = (midY - (ev.clientY - rect.top)) / midY;
 
-		const draw2 = async () => {
-			if (idxP2 >= points2.length) {
-				clearInterval(intervalP2);
-				idxP2 = points2.length;
-			}
+			const r = Math.random();
+			const g = Math.random();
+			const b = Math.random();
+			const a = 1.0;
+			const color = { r, g, b, a };
 
-			const subPoints = points2.slice(0, idxP2);
-			c2.setAttribute("points", subPoints.join(" "));
-			idxP2 += 20;
+			points.push({x,y,color});
+			draw_POINTS();
 		}
-
-		intervalP = setInterval(draw, 100);
-		intervalP2 = setInterval(draw2, 100);
-
+		
 	</script>
-
 </body>
 </html>
-
