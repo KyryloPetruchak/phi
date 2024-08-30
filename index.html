@@ -13,6 +13,7 @@
 </head>
 
 <body>
+	<p style="position:absolute; background-color:white;" id="counter"></p>
 	<canvas id="glcanvas" width="640" height="480"></canvas>
 
 	<script src="libs/glUtils.js"></script>
@@ -20,19 +21,19 @@
 
 	<script>
 		const VSHADER_SOURCE = `
-			attribute vec4 aPosition;			// aPosition used as mediator to set gl_Position
-			void main() {
-				gl_Position = aPosition;		// gl_Position set the vertex coordinates of the point to draw
-				gl_PointSize = 5.0;				// Set the point size
-			}`;
+				attribute vec4 aPosition;			// aPosition used as mediator to set gl_Position
+				void main() {
+					gl_Position = aPosition;		// gl_Position set the vertex coordinates of the point to draw
+					gl_PointSize = 5.0;				// Set the point size
+				}`;
 
 		const FSHADER_SOURCE = `
-			precision mediump float;
+				precision mediump float;
 
-			uniform vec4 uFragColor;
-			void main() {
-				gl_FragColor = uFragColor;	// Set the point color
-			}`;
+				uniform vec4 uFragColor;
+				void main() {
+					gl_FragColor = uFragColor;	// Set the point color
+				}`;
 
 		const points = [];
 		const init = () => {
@@ -52,6 +53,7 @@
 		};
 
 		const { canvas, gl, program, aPosition, uFragColor } = init();
+		const counterP = document.getElementById("counter");
 
 		const draw_TRIANGLE_STRIP = () => {
 			const vertices = new Float32Array([
@@ -94,10 +96,11 @@
 			const a = 1.0;
 			const color = { r, g, b, a };
 
-			points.push({x,y,color});
+			points.push({ x, y, color });
+			counterP.innerText = points.length;
 			draw_POINTS();
 		}
-		
+
 	</script>
 </body>
 </html>
